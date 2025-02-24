@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/ziyadrw/go-book-store/config"
@@ -15,10 +14,7 @@ var NewBook models.Book
 
 func GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	newBooks := models.GetAllBooks()
-	res, _ := json.Marshal(newBooks)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	utils.WriteJSONResponse(w, http.StatusOK, newBooks)
 }
 
 func GetBook(w http.ResponseWriter, r *http.Request) {
@@ -26,13 +22,17 @@ func GetBook(w http.ResponseWriter, r *http.Request) {
 	bookId := vars["bookId"]
 	id, err := strconv.ParseInt(bookId, 0, 0)
 	if err != nil {
-		fmt.Println("Error while parsing")
+		utils.WriteJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid book ID"})
+		return
 	}
+
 	bookDetails := models.GetBook(id)
-	res, _ := json.Marshal(bookDetails)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	if bookDetails == nil {
+		utils.WriteJSONResponse(w, http.StatusNotFound, map[string]string{"message": "Book not found"})
+		return
+	}
+
+	utils.WriteJSONResponse(w, http.StatusOK, bookDetails)
 }
 
 func CreateBook(w http.ResponseWriter, r *http.Request) {
@@ -42,10 +42,7 @@ func CreateBook(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received Book: %+v\n", book)
 
 	b := book.CreateBook()
-	res, _ := json.Marshal(b)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	utils.WriteJSONResponse(w, http.StatusOK, b)
 }
 
 func DeleteBook(w http.ResponseWriter, r *http.Request) {
@@ -53,13 +50,11 @@ func DeleteBook(w http.ResponseWriter, r *http.Request) {
 	bookId := vars["bookId"]
 	id, err := strconv.ParseInt(bookId, 0, 0)
 	if err != nil {
-		fmt.Println("error while parsing")
+		utils.WriteJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid book ID"})
+		return
 	}
 	book := models.DeleteBook(id)
-	res, _ := json.Marshal(book)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	utils.WriteJSONResponse(w, http.StatusOK, book)
 }
 
 func UpdateBook(w http.ResponseWriter, r *http.Request) {
@@ -69,14 +64,13 @@ func UpdateBook(w http.ResponseWriter, r *http.Request) {
 	bookId := vars["bookId"]
 	id, err := strconv.ParseInt(bookId, 0, 0)
 	if err != nil {
-		fmt.Println("error while parsing")
+		utils.WriteJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid book ID"})
 		return
 	}
 
 	bookDetails := models.GetBook(id)
 	if bookDetails == nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"message": "Book not found"}`))
+		utils.WriteJSONResponse(w, http.StatusNotFound, map[string]string{"message": "Book not found"})
 		return
 	}
 
@@ -93,8 +87,5 @@ func UpdateBook(w http.ResponseWriter, r *http.Request) {
 	db := config.GetDB()
 	db.Save(&bookDetails)
 
-	res, _ := json.Marshal(bookDetails)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	utils.WriteJSONResponse(w, http.StatusOK, bookDetails)
 }
